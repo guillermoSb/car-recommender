@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { createUser } from "../database";
 
 function Register() {
   const [email, setEmail] = useState("");
@@ -6,8 +8,30 @@ function Register() {
   const [location, setLocation] = useState("");
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
+  const navigate = useNavigate();
+  const [ok, setOk] = useState(true);
+
+  const submitUserInfo = async () => {
+    try {
+      const ok = await createUser(name, email, password, age, location);
+      if (ok) {
+        navigate("/login");
+        setOk(true);
+      } else {
+        setOk(false);
+      }
+    } catch (error) {}
+  };
   return (
     <div className="container my-4">
+      {!ok ? (
+        <div className="alert alert-danger" role="alert">
+          Error al crear tu cuenta.
+        </div>
+      ) : (
+        ""
+      )}
+
       <h1>Crea tu cuenta</h1>
       <form>
         <div className="mb-3">
@@ -104,6 +128,11 @@ function Register() {
           type="submit"
           className="btn btn-primary"
           disabled={!name || !location || !password || !email || !age}
+          onClick={(e) => {
+            e.preventDefault();
+
+            submitUserInfo();
+          }}
         >
           Crear Cuenta
         </button>
