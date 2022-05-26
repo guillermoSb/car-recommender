@@ -39,12 +39,12 @@ export const createUser = async (name, email, password, age, location) => {
         )
 
         writeResult.records.forEach(record => {
-            const person1Node = record.get('p')
-            const person2Node = record.get('place')
-            console.log(
-                person1Node,
-                person2Node
-            )
+            // const person1Node = record.get('p')
+            // const person2Node = record.get('place')
+            // console.log(
+            //     person1Node,
+            //     person2Node
+            // )
         });
         await session.close();
         await driver.close();
@@ -87,6 +87,38 @@ export const loginUser = async (email, password) => {
 
 
 /**
+ * Makes an user buy a car
+ * @param {*} email Email for the user
+ * @param {*} id Id for the user
+ * @returns 
+ */
+export const buyCar = async (email, id) => {
+    const driver = neo4j.driver(uri, neo4j.auth.basic(user, passwordNeo)); // driver for neo4j
+    const session = driver.session();
+    try {
+
+        const writeQuery = `
+            MATCH (p: Person), (c: Carro)
+            WHERE p.email = $email AND ID(c) = $id
+            MERGE (p)-[:HAS]->(c)
+            RETURN p, c
+        `; // Query to 
+
+        const writeResult = await session.writeTransaction(tx =>
+            tx.run(writeQuery, { email, id })
+        )
+
+        await session.close();
+        await driver.close();
+        return true;
+    } catch (error) {
+        console.error('Something went wrong', error);
+        return false;
+    }
+}
+
+
+/**
  * Get all the nearest cars
  * QUERY:
  * MATCH(p1: Person) - [: LIVES_IN] -> (pl:Place)< -[: LIVES_IN] - (p2:Person) -[: HAS] -> (c:Carro)
@@ -100,10 +132,10 @@ export const getNearCars = async (email) => {
     try {
         // Check if there is already an user with that email
         const readQuery = `
-        MATCH(p1: Person) - [: LIVES_IN] -> (pl:Place)< -[: LIVES_IN] - (p2:Person) -[: HAS] -> (c:Carro)
-        WHERE p1.email = $email
+        MATCH(p1: Person) - [: LIVES_IN] -> (pl:Place)<-[: LIVES_IN] - (p2:Person) -[: HAS] -> (c:Carro)
+        WHERE p1.email = $email AND NOT(p1)-[:HAS]->(c:Carro)
         MERGE(p1) - [w: WOULD_LIKE] -> (c)
-        RETURN c.Nombre, ${'c.`Año`'}, c.Fabricante, c.Modelo, c.Pais, c.Tipo
+        RETURN c.Nombre, ${'c.`Año`'}, c.Fabricante, c.Modelo, c.Pais, c.Tipo, ID(c) as id
         LIMIT 3`
         const cars = [];
         const readResult = await session.readTransaction(tx =>
@@ -117,14 +149,16 @@ export const getNearCars = async (email) => {
                 company: '',
                 model: '',
                 country: '',
-                type: ''
+                type: '',
+                id: ''
             }
             carro.name = record.get('c.Nombre');
-            carro.year = record.get('c.`Año`');
+            carro.year = record.get('c.`Año`').low;
             carro.company = record.get('c.Fabricante');
             carro.model = record.get('c.Modelo');
             carro.country = record.get('c.Pais');
             carro.type = record.get('c.Tipo');
+            carro.id = record.get('id').low;
             cars.push(carro);
         });
         await session.close();

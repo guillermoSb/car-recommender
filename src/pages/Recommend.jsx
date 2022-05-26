@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { getNearCars } from "../database";
+import { buyCar, getNearCars } from "../database";
 
-function Recommend({ email }) {
+function Recommend({ email = "rey21139@uvg.edu.gt" }) {
   const [nearCars, setNearCars] = useState([]); // Cars array
   useEffect(() => {
     const fetchNearCars = async () => {
@@ -14,6 +14,11 @@ function Recommend({ email }) {
       fetchNearCars();
     }
   }, [email]);
+
+  const sendBuyRequest = async (id) => {
+    const result = await buyCar(email, id);
+    console.log(result);
+  };
   return (
     <>
       <div className="container my-4">
@@ -21,15 +26,23 @@ function Recommend({ email }) {
         <div className="row">
           {nearCars.map((car) => {
             return (
-              <div className="col-md-4 my-4">
-                <div className="card" key={car.name}>
+              <div className="col-md-4 my-4" key={car.id}>
+                <div className="card">
                   <div className="card-body">
-                    <h5 className="card-title">{car.name}</h5>
+                    <h5 className="card-title">{car.name} </h5>
                     <h6 className="card-subtitle mb-2 text-muted">
                       {car.company} - {car.type}
                     </h6>
                     <p className="card-text">{car.country}</p>
-                    <button className="btn btn-primary">Comprar</button>
+                    <p className="card-text">{car.year}</p>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => {
+                        sendBuyRequest(car.id);
+                      }}
+                    >
+                      Comprar
+                    </button>
                   </div>
                 </div>
               </div>
