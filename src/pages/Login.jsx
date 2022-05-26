@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginUser } from "../database";
 
-function Login() {
+function Login({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [ok, setOk] = useState(true);
@@ -13,6 +13,7 @@ function Login() {
     const result = await loginUser(email, password); // Login
     setOk(result);
     if (result) {
+      onLogin(result);
       navigate("/recommend");
     }
   };

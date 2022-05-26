@@ -1,21 +1,40 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { getNearCars } from "../database";
 
-function Recommend({ userId }) {
+function Recommend({ email }) {
+  const [nearCars, setNearCars] = useState([]); // Cars array
+  useEffect(() => {
+    const fetchNearCars = async () => {
+      const cars = await getNearCars(email);
+      console.log(cars);
+
+      setNearCars(cars);
+    };
+    if (email) {
+      fetchNearCars();
+    }
+  }, [email]);
   return (
     <>
       <div className="container my-4">
         <h1>Personas que viven cerca también han comprado</h1>
         <div className="row">
-          <div className="col-md-4 my-4">
-            <div className="card ">
-              <div className="card-body">
-                <h5 className="card-title">Toyota Land Cruiser 2022</h5>
-                <h6 className="card-subtitle mb-2 text-muted">Pick Up</h6>
-                <p className="card-text">Japón</p>
-                <button className="btn btn-primary">Comprar</button>
+          {nearCars.map((car) => {
+            return (
+              <div className="col-md-4 my-4">
+                <div className="card" key={car.name}>
+                  <div className="card-body">
+                    <h5 className="card-title">{car.name}</h5>
+                    <h6 className="card-subtitle mb-2 text-muted">
+                      {car.company} - {car.type}
+                    </h6>
+                    <p className="card-text">{car.country}</p>
+                    <button className="btn btn-primary">Comprar</button>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
       </div>
       <div className="container my-4">
