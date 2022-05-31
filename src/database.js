@@ -117,6 +117,73 @@ export const buyCar = async (email, id) => {
     }
 }
 
+/**
+ * 
+ * @param {*} email 
+ * CALL {
+    MATCH(e: Economy) - [: HAS] -> (c:Carro) -[: FABRICADO_POR] -> (f:Fabricante) -[: THIS_IS] -> (b:BrandType)
+        WHERE c.Capacidad = "INDIVIDUAL" and b.Tipo = "Standar" and e.dip = "MEDIA"       
+        RETURN c as Result
+    UNION
+    MATCH(e: Economy) - [: HAS] -> (c:Carro) -[: FABRICADO_POR] -> (f:Fabricante) -[: THIS_IS] -> (b:BrandType), (p: Person{ email: 'san191517@uvg.edu.gt'})
+        WHERE c.Distancias = "LONG" and b.Tipo = "Standar" and e.dip = "MEDIA"
+    MERGE(c) - [: IS_RECOMMENDED_TO] -> (p)  
+        RETURN c as Result
+}
+RETURN Result
+ */
+export const recommendCars = async (email, distance, capacity, economy, preference, meaning) => {
+    const driver = neo4j.driver(uri, neo4j.auth.basic(user, passwordNeo)); // driver for neo4j
+    const session = driver.session();
+    try {
+        // Check if there is already an user with that email
+        const readQuery = `
+        CALL {
+            MATCH(e: Economy) - [: HAS] -> (c:Carro) -[: FABRICADO_POR] -> (f:Fabricante) -[: THIS_IS] -> (b:BrandType)
+                WHERE c.Capacidad = $capacity and b.Tipo = $preference and e.dip = $economy     
+                RETURN c
+            UNION
+            MATCH(e: Economy) - [: HAS] -> (c:Carro) -[: FABRICADO_POR] -> (f:Fabricante) -[: THIS_IS] -> (b:BrandType), (p: Person{ email: $email})
+                WHERE c.Distancias = $distance and b.Tipo = $meaning and e.dip = $economy
+            MERGE(c) - [: IS_RECOMMENDED_TO] -> (p)  
+                RETURN c
+        }
+        RETURN c.Nombre, ${'c.`Año`'}, c.Fabricante, c.Modelo, c.Pais, c.Tipo, ID(c) as id
+        LIMIT 5`
+        const cars = [];
+        const readResult = await session.readTransaction(tx =>
+            tx.run(readQuery, { email, distance, capacity, economy, preference, meaning })
+        );
+        // Fill the object
+        readResult.records.forEach(record => {
+            let carro = {
+                name: '',
+                year: '',
+                company: '',
+                model: '',
+                country: '',
+                type: '',
+                id: ''
+            }
+            carro.name = record.get('c.Nombre');
+            carro.year = record.get('c.`Año`').low;
+            carro.company = record.get('c.Fabricante');
+            carro.model = record.get('c.Modelo');
+            carro.country = record.get('c.Pais');
+            carro.type = record.get('c.Tipo');
+            carro.id = record.get('id').low;
+            cars.push(carro);
+        });
+        console.log(cars);
+        await session.close();
+        await driver.close();
+        return cars;
+    } catch (error) {
+        console.error('Something went wrong', error);
+        return null;
+    }
+}
+
 
 /**
  * Get all the nearest cars
@@ -135,7 +202,7 @@ export const getNearCars = async (email) => {
         MATCH(p1: Person) - [: LIVES_IN] -> (pl:Place)<-[: LIVES_IN] - (p2:Person) -[: HAS] -> (c:Carro)
         WHERE p1.email = $email AND NOT(p1)-[:HAS]->(c:Carro)
         MERGE(p1) - [w: WOULD_LIKE] -> (c)
-        RETURN c.Nombre, ${'c.`Año`'}, c.Fabricante, c.Modelo, c.Pais, c.Tipo, ID(c) as id
+        RETURN DISTINCT c.Nombre, ${'c.`Año`'}, c.Fabricante, c.Modelo, c.Pais, c.Tipo, ID(c) as id
         LIMIT 3`
         const cars = [];
         const readResult = await session.readTransaction(tx =>

@@ -1,8 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { buyCar, getNearCars } from "../database";
+import { buyCar, getNearCars, recommendCars } from "../database";
 
-function Recommend({ email = "rey21139@uvg.edu.gt" }) {
+function Recommend({ email }) {
   const [nearCars, setNearCars] = useState([]); // Cars array
+  const [recomendedCars, setRecomendedCars] = useState([]); // Recommended cars array
+  const [distance, setDistance] = useState("");
+  const [capacity, setCapacity] = useState("");
+  const [economy, setEconomy] = useState("");
+  const [preference, setPreference] = useState("");
+  const [meaning, setMeaning] = useState("");
   useEffect(() => {
     const fetchNearCars = async () => {
       const cars = await getNearCars(email);
@@ -15,9 +21,19 @@ function Recommend({ email = "rey21139@uvg.edu.gt" }) {
     }
   }, [email]);
 
+  const runRecommendation = async () => {
+    const result = await recommendCars(
+      email,
+      distance,
+      capacity,
+      economy,
+      preference,
+      meaning
+    );
+    setRecomendedCars(result);
+  };
   const sendBuyRequest = async (id) => {
     const result = await buyCar(email, id);
-    console.log(result);
   };
   return (
     <>
@@ -50,6 +66,40 @@ function Recommend({ email = "rey21139@uvg.edu.gt" }) {
           })}
         </div>
       </div>
+      {recomendedCars.length > 0 ? (
+        <div className="container my-4">
+          <h1>Resultados</h1>
+          <div className="row">
+            {recomendedCars.map((car) => {
+              return (
+                <div className="col-md-4 my-4" key={car.id}>
+                  <div className="card">
+                    <div className="card-body">
+                      <h5 className="card-title">{car.name} </h5>
+                      <h6 className="card-subtitle mb-2 text-muted">
+                        {car.company} - {car.type}
+                      </h6>
+                      <p className="card-text">{car.country}</p>
+                      <p className="card-text">{car.year}</p>
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => {
+                          sendBuyRequest(car.id);
+                        }}
+                      >
+                        Comprar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        ""
+      )}
+
       <div className="container my-4">
         <h1>Formulario de Recomendacion</h1>
         <form>
@@ -60,25 +110,33 @@ function Recommend({ email = "rey21139@uvg.edu.gt" }) {
             <select
               className="form-select"
               aria-label="Default select example"
-              onChange={(e) => {}}
+              onChange={(e) => {
+                setDistance(e.target.value);
+              }}
             >
               <option value="">Selecciona uno</option>
-              <option value="larga">
+              <option value="LONG">
                 Largas distancias, me muevo entre departamentos
               </option>
-              <option value="corta">
+              <option value="SHORT">
                 Distancias cortas, me mantengo en el mismo sector
               </option>
             </select>
           </div>
           <div className="mb-3">
             <label className="form-label">Suelo movilizarme…</label>
-            <select className="form-select" aria-label="Default select example">
+            <select
+              className="form-select"
+              aria-label="Default select example"
+              onChange={(e) => {
+                setCapacity(e.target.value);
+              }}
+            >
               <option value="">Selecciona uno</option>
-              <option value="familia">
+              <option value="FAMILIA">
                 En familia, usamos todos un mismo vehículo
               </option>
-              <option value="solo">Solo, no comparto mi auto</option>
+              <option value="INDIVIDUAL">Solo, no comparto mi auto</option>
             </select>
           </div>
           <div className="mb-3">
@@ -86,14 +144,16 @@ function Recommend({ email = "rey21139@uvg.edu.gt" }) {
             <select
               className="form-select"
               aria-label="Default select example"
-              onChange={(e) => {}}
+              onChange={(e) => {
+                setEconomy(e.target.value);
+              }}
             >
               <option value="">Selecciona uno</option>
-              <option value="high">Cuento con ahorros suficientes</option>
-              <option value="medium">
+              <option value="ALTA">Cuento con ahorros suficientes</option>
+              <option value="MEDIA">
                 Tengo ahorros, pero pediría un extrafinanciamiento
               </option>
-              <option value="low">
+              <option value="BAJA">
                 Necesito un extrafinanciamiento completo
               </option>
             </select>
@@ -105,11 +165,13 @@ function Recommend({ email = "rey21139@uvg.edu.gt" }) {
             <select
               className="form-select"
               aria-label="Default select example"
-              onChange={(e) => {}}
+              onChange={(e) => {
+                setPreference(e.target.value);
+              }}
             >
               <option value="">Selecciona uno</option>
-              <option value="comodidad">Comodidad antes que economía</option>
-              <option value="economia">Economía antes que comodidad</option>
+              <option value="BAJA">Comodidad antes que economía</option>
+              <option value="MEDIA">Economía antes que comodidad</option>
             </select>
           </div>
           <div className="mb-3">
@@ -117,16 +179,24 @@ function Recommend({ email = "rey21139@uvg.edu.gt" }) {
             <select
               className="form-select"
               aria-label="Default select example"
-              onChange={(e) => {}}
+              onChange={(e) => {
+                setMeaning(e.target.value);
+              }}
             >
               <option value="">Selecciona uno</option>
-              <option value="accesorio">
-                El accesorio perfecto, habla de mi.
-              </option>
-              <option value="medio">Un medio de transporte.</option>
+              <option value="Luxy">El accesorio perfecto, habla de mi.</option>
+              <option value="Standar">Un medio de transporte.</option>
             </select>
           </div>
-          <button type="submit" className="btn btn-primary" onClick={(e) => {}}>
+          <button
+            type="submit"
+            className="btn btn-primary"
+            onClick={(e) => {
+              e.preventDefault();
+              console.log(distance, capacity, economy, preference, meaning);
+              runRecommendation();
+            }}
+          >
             Recomendar!
           </button>
         </form>
